@@ -254,12 +254,17 @@ def collect(
     for s, act in pairs:
         ref = ref_ms((s, act))
         # A status flag can stick (a claude process left in a forgotten
-        # tmux window keeps "shell" for days). If an "active" session has
-        # produced nothing for an hour, present it as idle — genuinely
-        # working sessions emit transcript events far more often.
+        # tmux window keeps "shell" for days). Structural signals were
+        # tested and rejected: unresolved-tool detection flickers between
+        # calls, and every claude keeps a persistent shell child, so
+        # child-process checks have zero discrimination. Time since last
+        # observable activity is the honest signal; measured distribution
+        # is bimodal (real work <12min vs zombies >1day), so a 3h cutoff
+        # sits deep inside the gap while sparing long quiet tool runs.
+        last_activity = max(ref, float(s.status_updated_at or 0))
         active = (
             s.status in ACTIVE_STATUSES
-            and (now_ms - ref) < 60 * 60 * 1000
+            and (now_ms - last_activity) < 3 * 60 * 60 * 1000
         )
         status_out = s.status if active or s.status not in ACTIVE_STATUSES else "idle" 
         age_days = (now_ms - ref) / 86400000 if ref else 999
