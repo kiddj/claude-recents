@@ -279,8 +279,10 @@ footer { padding: 4px 12px 8px; font-size: 10px; opacity: .4; text-align: center
     <span class="selwrap"><select id="newhost"></select></span>
     <button onclick="addHost()">Add</button>
   </div>
-  <div class="zhint">Requires passwordless (key-based) SSH — password prompts are not
-  supported. Set up once with <code>ssh-copy-id &lt;host&gt;</code>.</div>
+  <div class="zhint">This list comes from <code>~/.ssh/config</code> — add a
+  <code>Host &lt;alias&gt;</code> entry there and it appears here.
+  Requires passwordless (key-based) SSH — set up once with
+  <code>ssh-copy-id &lt;host&gt;</code>.</div>
 </div>
 <div id="dropline"></div>
 <footer>Click a card to expand · Right-click the menu bar icon to quit</footer>
