@@ -24,7 +24,7 @@ body {
 }
 body.dark {
   --tx: #f2f2f6; --tx2: #b9b9c6; --tx3: #84848f;
-  color: var(--tx); background: #1e1e24;
+  color: var(--tx); background: #1b1b21;
 }
 header {
   position: sticky; top: 0; z-index: 2;
@@ -39,19 +39,24 @@ header .acct { margin-left: auto; font-size: 11px; opacity: .55; }
 #list { padding: 8px 10px 0; }
 .card {
   contain: content;  /* keeps layout/paint local to the card while scrolling */
-  border-radius: 12px; padding: 11px 13px; margin-bottom: 9px;
+  border-radius: 12px; padding: 12px 13px; margin-bottom: 14px;
   background: #ffffff;
   border: 1px solid rgba(0,0,0,.08);
 }
 body.dark .card {
-  background: #2a2a32;
-  border-color: rgba(255,255,255,.08);
+  background: #2d2d36;
+  border-color: rgba(255,255,255,.09);
 }
 .card.st-busy { border-color: rgba(52,199,89,.5); }
 body.dark .card.st-busy { border-color: rgba(52,199,89,.4); }
 .card.st-waiting { border-color: rgba(255,159,10,.5); }
 body.dark .card.st-waiting { border-color: rgba(255,159,10,.4); }
-.top { display: flex; align-items: center; gap: 7px; }
+.top {
+  display: flex; align-items: center; gap: 7px;
+  padding-bottom: 9px; margin-bottom: 2px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+body.dark .top { border-bottom-color: rgba(255,255,255,.07); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #a1a1a6; flex: none; }
 .dot.busy { background: #34c759; animation: pulse 1.6s ease-in-out infinite; }
 .dot.waiting { background: #ff9f0a; animation: pulse 1.6s ease-in-out infinite; }
