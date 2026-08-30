@@ -47,9 +47,9 @@ body.dark .card {
   background: #2d2d36;
   border-color: rgba(255,255,255,.09);
 }
-.card.st-busy { border-color: rgba(52,199,89,.5); }
+.card.st-busy { border-color: #2f9e44; }
 body.dark .card.st-busy { border-color: rgba(52,199,89,.4); }
-.card.st-waiting { border-color: rgba(255,159,10,.5); }
+.card.st-waiting { border-color: #e8790c; }
 body.dark .card.st-waiting { border-color: rgba(255,159,10,.4); }
 .top {
   display: flex; align-items: center; gap: 7px;
