@@ -359,6 +359,15 @@ window.addEventListener('scroll', function () {
   window._scrollQuietAt = Date.now() + 350;
 }, { passive: true });
 window.update = function (data) {
+  try {
+    _updateImpl(data);
+  } catch (e) {
+    // A render bug must be visible, not an eternal "Loading…".
+    document.getElementById('list').innerHTML =
+      '<div class="empty">render error: ' + esc(String(e)) + '</div>';
+  }
+};
+function _updateImpl(data) {
   if (window._dragging) return;  // don't rebuild mid-drag
   // Rebuilding layout mid-scroll causes hitches — wait for the scroll to
   // settle; the next 2s tick delivers the same data anyway.
@@ -412,6 +421,7 @@ window.update = function (data) {
       html += '<div class="empty">No running Claude Code sessions</div>';
       return;
     }
+    const st = h ? (data.host_status || {})[h] : null;
     const busyN = arr.filter(
       s => ['busy', 'shell', 'waiting'].indexOf(s.status) !== -1
     ).length;
@@ -430,7 +440,6 @@ window.update = function (data) {
       '</div>';
     const groups = { recent: [], week: [], old: [] };
     arr.forEach(s => (groups[s.group] || groups.old).push(s));
-    const st = h ? (data.host_status || {})[h] : null;
     let statusLine = '';
     if (st && st.state === 'error') {
       statusLine = '<div class="hosterr">⚠ Connection failed · ' + esc(st.error) +
@@ -454,7 +463,7 @@ window.update = function (data) {
   });
   list.innerHTML = html;
   renderHostOptions(data.ssh_config_hosts || []);
-};
+}
 window.hostToggle = function (el) {
   // A click that lands right after a drag is drag residue, not a toggle.
   if (Date.now() - (window._lastDragEnd || 0) < 400) return;
