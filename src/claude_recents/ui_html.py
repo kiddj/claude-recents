@@ -19,7 +19,7 @@ html, body {
 body {
   --tx: #1c1c21; --tx2: #5c5c66; --tx3: #8e8e99;
   font-family: -apple-system, "Apple SD Gothic Neo", sans-serif;
-  font-size: 13px; color: var(--tx); background: #e8e8ee;
+  font-size: 13px; color: var(--tx); background: #e0e0e8;
   -webkit-user-select: none; cursor: default;
 }
 body.dark {
@@ -30,7 +30,7 @@ header {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: baseline; gap: 8px;
   padding: 9px 12px 8px;
-  background: #e8e8ee;
+  background: #e0e0e8;
   border-bottom: 1px solid rgba(0,0,0,.1);
 }
 body.dark header { background: #1e1e24; border-color: rgba(255,255,255,.09); }
@@ -41,7 +41,7 @@ header .acct { margin-left: auto; font-size: 11px; opacity: .55; }
   contain: content;  /* keeps layout/paint local to the card while scrolling */
   border-radius: 10px; padding: 9px 11px; margin-bottom: 8px;
   background: #ffffff;
-  border: 1px solid rgba(0,0,0,.14);
+  border: 1px solid rgba(0,0,0,.1);
 }
 body.dark .card {
   background: #2d2d36;
