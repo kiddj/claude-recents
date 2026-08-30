@@ -232,8 +232,10 @@ class RemoteHost:
         self._bundle_at = 0.0     # when the current bundle was received
         self._fetched_at = 0.0    # when a fetch last finished (success or not)
         self._fetching = False
+        self._fetch_started = 0.0
         self._proc = None
         self._queued = False
+        self._killed_intent = False
         self._lock = threading.Lock()
 
     def status(self) -> tuple:
@@ -254,8 +256,13 @@ class RemoteHost:
         it and queue an immediate retry."""
         with self._lock:
             if self._fetching:
-                if force:
+                # A HEALTHY in-flight fetch (started moments ago) will land
+                # fresh data by itself — killing it would surface a phantom
+                # "connection failed". Only kill fetches old enough to be
+                # hung (past the 8s connect window).
+                if force and time.time() - self._fetch_started > 8:
                     self._queued = True
+                    self._killed_intent = True
                     proc = self._proc
                     if proc is not None:
                         try:
@@ -266,6 +273,7 @@ class RemoteHost:
             if not force and time.time() - self._fetched_at < min_interval:
                 return
             self._fetching = True
+            self._fetch_started = time.time()
         threading.Thread(target=self._fetch, daemon=True).start()
 
     def _fetch(self) -> None:
@@ -314,7 +322,12 @@ class RemoteHost:
             self._proc = None
             self._fetching = False
             self._fetched_at = time.time()
-            self.error = error
+            if self._killed_intent:
+                # We killed this fetch ourselves — its "failure" is not a
+                # connection problem. Keep the previous error state.
+                self._killed_intent = False
+            else:
+                self.error = error
             if bundle is not None:
                 self._bundle = bundle
                 self._bundle_at = time.time()
