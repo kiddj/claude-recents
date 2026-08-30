@@ -1,0 +1,39 @@
+[project]
+name = "claude-recents"
+version = "0.1.1"
+description = "macOS menu bar app showing what every Claude Code session is working on — local and over SSH — in real time"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "kiddj" }]
+requires-python = ">=3.12"
+keywords = ["claude", "claude-code", "menubar", "macos", "session", "monitor"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: MacOS X",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "pyobjc-framework-Cocoa>=10.0",
+    "pyobjc-framework-WebKit>=10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kiddj/claude-recents"
+Repository = "https://github.com/kiddj/claude-recents"
+Issues = "https://github.com/kiddj/claude-recents/issues"
+
+[project.scripts]
+claude-recents = "claude_recents.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/claude_recents"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "README.md", "LICENSE", "pyproject.toml"]

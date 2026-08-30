@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.omc/
+build/
+dist/
+dist_pkg/
+*.egg-info/
+pyproject.toml.bak
+.DS_Store
