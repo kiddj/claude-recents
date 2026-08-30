@@ -446,6 +446,14 @@ class AppDelegate(NSObject):
             for r in self.remotes:
                 r.request_now()
             self.tick_(None)
+        elif cmd == "open_ssh_config":
+            cfg_path = Path.home() / ".ssh" / "config"
+            try:
+                cfg_path.parent.mkdir(mode=0o700, exist_ok=True)
+                cfg_path.touch(exist_ok=True)
+            except OSError:
+                return
+            subprocess.Popen(["open", "-t", str(cfg_path)])
         elif cmd == "add_host":
             host = str(value or "").strip()
             if _config_add_host(host):

@@ -197,6 +197,11 @@ body.dark .addbar select {
   font-size: 12px; flex: none;
   background: #0a84ff; color: #fff; cursor: pointer; font-family: inherit;
 }
+.addbar .cfgbtn {
+  background: transparent; color: var(--tx2);
+  border: 1px solid rgba(0,0,0,.14); padding: 0 11px;
+}
+body.dark .addbar .cfgbtn { border-color: rgba(255,255,255,.16); }
 .hostrm {
   border: none; background: transparent; cursor: pointer; flex: none;
   color: #e0443e; padding: 0 5px; border-radius: 5px; height: 18px;
@@ -278,6 +283,7 @@ footer { padding: 4px 12px 8px; font-size: 10px; opacity: .4; text-align: center
   <div class="addbar">
     <span class="selwrap"><select id="newhost"></select></span>
     <button onclick="addHost()">Add</button>
+    <button class="cfgbtn" onclick="openSshConfig()" title="Open ~/.ssh/config in your editor">Open Config</button>
   </div>
   <div class="zhint">This list comes from <code>~/.ssh/config</code> — add a
   <code>Host &lt;alias&gt;</code> entry there and it appears here.
@@ -497,6 +503,11 @@ window.hostToggle = function (el) {
     window.webkit.messageHandlers.app.postMessage(
       { cmd: 'host_collapsed', value: window._collapsedHosts }
     );
+  } catch (err) {}
+};
+window.openSshConfig = function () {
+  try {
+    window.webkit.messageHandlers.app.postMessage({ cmd: 'open_ssh_config' });
   } catch (err) {}
 };
 window.addHost = function () {
