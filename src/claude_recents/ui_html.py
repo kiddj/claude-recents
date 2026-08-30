@@ -219,6 +219,7 @@ body.dark .addbar select {
 .hostsec:first-child, #list > .hosterr + .hostsec { border-top: none; margin-top: 2px; padding-top: 0; }
 body.dark .hostsec { border-top-color: rgba(255,255,255,.1); }
 .hostcount { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--tx2); }
+.hostcount .stale { color: #e0443e; font-weight: 600; }
 .hostsec.armed .hostcount { display: none; }
 .hostsec { cursor: grab; }
 .hostsec:active { cursor: grabbing; }
@@ -425,7 +426,7 @@ window.update = function (data) {
       '<span class="hostdot ' + hostDotOf(h, data) + '"></span>' +
       (h ? '🖥 ' + esc(h) : '💻 This Mac') +
       '<span class="hostcount">' + busyN + ' active · ' + arr.length + ' total' +
-      '</span>' + (h ? rmControls(h, armedHere) : '') +
+      staleTag(st) + '</span>' + (h ? rmControls(h, armedHere) : '') +
       '</div>';
     const groups = { recent: [], week: [], old: [] };
     arr.forEach(s => (groups[s.group] || groups.old).push(s));
@@ -512,6 +513,13 @@ function rmControls(h, armed) {
   }
   return '<button class="hostrm" data-host="' + esc(h) + '"' +
     ' onclick="hostRm(event,this)" aria-label="Disconnect">' + UNLINK_SVG + '</button>';
+}
+function staleTag(st) {
+  // Only shown when the data is meaningfully old — silence is freshness.
+  if (!st || st.age_s === undefined || st.age_s < 60) return '';
+  const m = Math.floor(st.age_s / 60);
+  const t = m < 60 ? m + 'm' : Math.floor(m / 60) + 'h';
+  return ' · <span class="stale">' + t + ' old</span>';
 }
 function hostDotOf(h, data) {
   if (!h) return 'ok';  // this Mac

@@ -229,23 +229,41 @@ class RemoteHost:
         self.host = host
         self.error = ""
         self._bundle: dict | None = None
-        self._fetched_at = 0.0
+        self._bundle_at = 0.0     # when the current bundle was received
+        self._fetched_at = 0.0    # when a fetch last finished (success or not)
         self._fetching = False
+        self._proc = None
+        self._queued = False
         self._lock = threading.Lock()
 
     def status(self) -> tuple:
-        """("ok" | "error" | "connecting", error message)."""
+        """("ok" | "error" | "connecting", error message, bundle age s)."""
         with self._lock:
+            age = time.time() - self._bundle_at if self._bundle_at else -1.0
             if self.error:
-                return ("error", self.error)
+                return ("error", self.error, age)
             if self._bundle is not None:
-                return ("ok", "")
-            return ("connecting", "")
+                return ("ok", "", age)
+            return ("connecting", "", age)
 
-    def refresh_async(self, min_interval: float) -> None:
-        """Kick off a background SSH fetch if the cache is stale."""
+    def refresh_async(self, min_interval: float, force: bool = False) -> None:
+        """Kick off a background SSH fetch if the cache is stale.
+
+        force=True must never be a silent no-op: if a fetch is already in
+        flight (possibly hung in an SSH timeout after a network drop), kill
+        it and queue an immediate retry."""
         with self._lock:
-            if self._fetching or time.time() - self._fetched_at < min_interval:
+            if self._fetching:
+                if force:
+                    self._queued = True
+                    proc = self._proc
+                    if proc is not None:
+                        try:
+                            proc.kill()
+                        except OSError:
+                            pass
+                return
+            if not force and time.time() - self._fetched_at < min_interval:
                 return
             self._fetching = True
         threading.Thread(target=self._fetch, daemon=True).start()
@@ -253,7 +271,7 @@ class RemoteHost:
     def _fetch(self) -> None:
         bundle, error = None, ""
         try:
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 [
                     "ssh",
                     "-o", "BatchMode=yes",
@@ -262,10 +280,16 @@ class RemoteHost:
                     self.host,
                     "python3", "-",
                 ],
-                input=REMOTE_SCRIPT,
-                capture_output=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=SSH_TIMEOUT,
+            )
+            with self._lock:
+                self._proc = proc
+            out, err = proc.communicate(input=REMOTE_SCRIPT, timeout=SSH_TIMEOUT)
+            result = subprocess.CompletedProcess(
+                proc.args, proc.returncode, out, err
             )
             if result.returncode == 0:
                 bundle = json.loads(result.stdout)
@@ -279,15 +303,27 @@ class RemoteHost:
                         f"(run: ssh-copy-id {self.host})"
                     )
         except subprocess.TimeoutExpired:
+            try:
+                proc.kill()
+            except OSError:
+                pass
             error = "connection timed out"
-        except (OSError, json.JSONDecodeError) as e:
+        except (OSError, ValueError) as e:
             error = str(e)[:120]
         with self._lock:
+            self._proc = None
             self._fetching = False
             self._fetched_at = time.time()
             self.error = error
             if bundle is not None:
                 self._bundle = bundle
+                self._bundle_at = time.time()
+            rerun = self._queued
+            self._queued = False
+        if rerun:
+            # A force-refresh arrived while we were (possibly hung) in
+            # flight — run a fresh attempt right away.
+            self.refresh_async(0, force=False)
 
     def snapshot(self) -> list[tuple[Session, Activity]]:
         """Sessions and activities from the last successful fetch."""

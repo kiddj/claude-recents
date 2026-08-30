@@ -233,8 +233,12 @@ def collect(
     host_status = {}
     for r in remotes or []:
         pairs.extend(r.snapshot())
-        state, err = r.status()
-        host_status[r.host] = {"state": state, "error": err}
+        state, err, age = r.status()
+        host_status[r.host] = {
+            "state": state,
+            "error": err,
+            "age_s": int(age) if age >= 0 else -1,
+        }
     # Reference time per session = the user's latest request (transcript),
     # falling back to the last transcript event, then the status file.
     # statusUpdatedAt alone lies for long-lived sessions, so it's last.
@@ -381,7 +385,7 @@ class AppDelegate(NSObject):
             # cached bundle can be minutes old, which reads as "old answer
             # under a new request" until the next poll catches up.
             for r in self.remotes:
-                r.refresh_async(min_interval=0)
+                r.refresh_async(min_interval=0, force=True)
             self.popover.showRelativeToRect_ofView_preferredEdge_(
                 sender.bounds(), sender, NSMaxYEdge
             )
@@ -417,9 +421,9 @@ class AppDelegate(NSObject):
                 self.theme = str(value)
                 _save_app_config_key("theme", self.theme)
         elif cmd == "refresh":
-            # Force an immediate remote fetch, skipping the poll interval.
+            # Force: kills any hung in-flight ssh and retries immediately.
             for r in self.remotes:
-                r.refresh_async(min_interval=0)
+                r.refresh_async(min_interval=0, force=True)
             self.tick_(None)
         elif cmd == "add_host":
             host = str(value or "").strip()
