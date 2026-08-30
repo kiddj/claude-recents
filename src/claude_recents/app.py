@@ -7,7 +7,12 @@ Clicking the status item opens an NSPopover with a card per session
 from __future__ import annotations
 
 import json
+import os
+import plistlib
 import re
+import shutil
+import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -56,6 +61,60 @@ def _panel_size() -> tuple:
     width = int(cfg.get("panel_width", PANEL_WIDTH))
     height = int(cfg.get("panel_height", avail))
     return (width, height)
+
+AGENT_LABEL = "com.kiddj.claude-recents"
+AGENT_PLIST = Path.home() / "Library" / "LaunchAgents" / f"{AGENT_LABEL}.plist"
+
+
+def _autostart_command() -> list[str]:
+    """How launchd should start this app: the bundle binary when running
+    from a .app, the installed console script otherwise."""
+    from AppKit import NSBundle
+
+    # Path checks are unreliable here — plain python also lives inside
+    # Python.app. Only trust OUR bundle id.
+    bundle = NSBundle.mainBundle()
+    if bundle and str(bundle.bundleIdentifier() or "") == AGENT_LABEL:
+        return [str(bundle.executablePath())]
+    script = shutil.which("claude-recents")
+    if script:
+        return [script]
+    return [sys.executable, "-m", "claude_recents.app"]
+
+
+def autostart_enabled() -> bool:
+    return AGENT_PLIST.exists()
+
+
+def enable_autostart() -> None:
+    """Write the LaunchAgent. Takes effect from the next login — we never
+    bootstrap here (RunAtLoad would spawn a second instance immediately)."""
+    cmd = _autostart_command()
+    plist = {
+        "Label": AGENT_LABEL,
+        "ProgramArguments": cmd,
+        "RunAtLoad": True,
+        "KeepAlive": False,
+        "EnvironmentVariables": {
+            # GUI apps launch without locale env; Korean transcripts need UTF-8.
+            "PYTHONUTF8": "1",
+            "LANG": "en_US.UTF-8",
+            "PATH": (
+                f"{Path(cmd[0]).parent}:"
+                "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+            ),
+        },
+    }
+    AGENT_PLIST.parent.mkdir(parents=True, exist_ok=True)
+    with open(AGENT_PLIST, "wb") as f:
+        plistlib.dump(plist, f)
+
+
+def disable_autostart() -> None:
+    # Remove the plist only. Never bootout: if THIS process is the launchd
+    # job, bootout would kill the running app mid-click.
+    AGENT_PLIST.unlink(missing_ok=True)
+
 
 # Observed status values: busy, shell (running a command), waiting
 # (pending permission), idle. The first three mean "actively working".
@@ -273,6 +332,12 @@ class AppDelegate(NSObject):
         button.sendActionOn_(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)
 
         self.quit_menu = NSMenu.alloc().init()
+        self.autostart_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Start at Login", "toggleAutostart:", ""
+        )
+        self.autostart_item.setTarget_(self)
+        self.quit_menu.addItem_(self.autostart_item)
+        self.quit_menu.addItem_(NSMenuItem.separatorItem())
         quit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "Quit Claude Recents", "terminate:", ""
         )
@@ -303,6 +368,7 @@ class AppDelegate(NSObject):
     def statusItemClicked_(self, sender):
         event = NSApplication.sharedApplication().currentEvent()
         if event is not None and event.type() == NSEventTypeRightMouseUp:
+            self.autostart_item.setState_(1 if autostart_enabled() else 0)
             self.item.popUpStatusItemMenu_(self.quit_menu)
             return
         if self.popover.isShown():
@@ -362,6 +428,13 @@ class AppDelegate(NSObject):
             self.host_order = [h for h in self.host_order if h != host]
             self.host_collapsed = [h for h in self.host_collapsed if h != host]
             self.tick_(None)
+
+    def toggleAutostart_(self, _sender):
+        if autostart_enabled():
+            disable_autostart()
+        else:
+            enable_autostart()
+        self.autostart_item.setState_(1 if autostart_enabled() else 0)
 
     def tick_(self, _timer):
         shown = self.popover.isShown()

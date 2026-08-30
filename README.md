@@ -2,6 +2,8 @@
 
 > **Quick — you have seven Claude sessions running. What is each one doing right now?**
 > …Exactly. Stop keeping that in your head. That's what this app is for.
+>
+> **The only ADHD cure you'll ever need.**
 
 **A macOS menu bar app that shows what every one of your Claude Code sessions is doing — right now, across all your machines.**
 
@@ -37,24 +39,9 @@ claude-recents                       # ✳ appears in your menu bar
 
 ### Start at login (optional)
 
-Create `~/Library/LaunchAgents/com.kiddj.claude-recents.plist`:
+Right-click the ✳ menu bar icon → **Start at Login**. That's it — the app writes its own LaunchAgent (`~/Library/LaunchAgents/com.kiddj.claude-recents.plist`) and starts automatically from your next login. Toggle it again to turn it off.
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key><string>com.kiddj.claude-recents</string>
-    <key>ProgramArguments</key>
-    <array><string>/Users/YOU/.local/bin/claude-recents</string></array>
-    <key>RunAtLoad</key><true/>
-</dict>
-</plist>
-```
-
-then `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.kiddj.claude-recents.plist`. (Find your binary path with `which claude-recents`.)
-
-> **Tip:** if you launch the app from a tmux daemon or SSH shell, the process will run but the icon won't appear — menu bar items require the GUI login session. The LaunchAgent above guarantees the right context.
+> **Tip:** if you launch the app from a tmux daemon or SSH shell, the process will run but the icon won't appear — menu bar items require the GUI login session. Launching normally (or via Start at Login) guarantees the right context.
 
 ## Usage
 

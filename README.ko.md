@@ -2,6 +2,8 @@
 
 > **지금 돌아가는 Claude 세션 일곱 개 — 각각 뭘 하고 있는지 바로 말할 수 있나요?**
 > …그럴 리가요. 그걸 머릿속에 담아두지 마세요. 그러라고 만든 앱입니다.
+>
+> **당신의 유일한 ADHD 치료제.**
 
 **모든 Claude Code 세션이 지금 무엇을 하고 있는지 — 이 맥에서도, 원격 서버에서도 — 실시간으로 보여주는 macOS 메뉴바 앱.**
 
@@ -37,24 +39,9 @@ claude-recents                       # 메뉴바에 ✳ 등장
 
 ### 로그인 시 자동 시작 (선택)
 
-`~/Library/LaunchAgents/com.kiddj.claude-recents.plist` 생성:
+메뉴바 ✳ 아이콘 **우클릭 → Start at Login**. 끝입니다 — 앱이 LaunchAgent(`~/Library/LaunchAgents/com.kiddj.claude-recents.plist`)를 직접 등록하고 다음 로그인부터 자동 시작됩니다. 다시 누르면 해제됩니다.
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key><string>com.kiddj.claude-recents</string>
-    <key>ProgramArguments</key>
-    <array><string>/Users/YOU/.local/bin/claude-recents</string></array>
-    <key>RunAtLoad</key><true/>
-</dict>
-</plist>
-```
-
-그다음 `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.kiddj.claude-recents.plist`. (실행 파일 경로는 `which claude-recents`로 확인.)
-
-> **팁:** tmux 데몬이나 SSH 셸에서 직접 실행하면 프로세스는 뜨지만 아이콘이 안 보입니다 — 메뉴바 아이템은 GUI 로그인 세션이 필요하거든요. 위 LaunchAgent가 올바른 컨텍스트를 보장합니다.
+> **팁:** tmux 데몬이나 SSH 셸에서 직접 실행하면 프로세스는 뜨지만 아이콘이 안 보입니다 — 메뉴바 아이템은 GUI 로그인 세션이 필요하거든요. 일반 실행(또는 Start at Login)이 올바른 컨텍스트를 보장합니다.
 
 ## 사용법
 
