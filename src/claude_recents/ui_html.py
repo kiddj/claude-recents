@@ -30,14 +30,15 @@ header {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: baseline; gap: 8px;
   padding: 12px 14px 10px;
-  background: rgba(244,244,246,.86); backdrop-filter: blur(16px);
+  background: #f2f2f5;
   border-bottom: 1px solid rgba(0,0,0,.07);
 }
-body.dark header { background: rgba(35,35,39,.86); border-color: rgba(255,255,255,.09); }
+body.dark header { background: #1e1e24; border-color: rgba(255,255,255,.09); }
 header h1 { font-size: 14px; font-weight: 700; }
 header .acct { margin-left: auto; font-size: 11px; opacity: .55; }
 #list { padding: 8px 10px 0; }
 .card {
+  contain: content;  /* keeps layout/paint local to the card while scrolling */
   border-radius: 12px; padding: 11px 13px; margin-bottom: 9px;
   background: #ffffff;
   border: 1px solid rgba(0,0,0,.08);
@@ -333,8 +334,14 @@ function card(s, open, showAccount, briefings) {
     summaryLine + chat + nowLine +
     '<div class="cwd">' + esc(s.cwd) + '</div></div>';
 }
+window.addEventListener('scroll', function () {
+  window._scrollQuietAt = Date.now() + 350;
+}, { passive: true });
 window.update = function (data) {
   if (window._dragging) return;  // don't rebuild mid-drag
+  // Rebuilding layout mid-scroll causes hitches — wait for the scroll to
+  // settle; the next 2s tick delivers the same data anyway.
+  if (Date.now() < (window._scrollQuietAt || 0)) return;
   // Rebuilding 30+ cards every tick is wasteful when nothing changed.
   const key = JSON.stringify(data);
   if (window._lastKey === key) return;
