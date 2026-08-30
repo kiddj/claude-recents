@@ -317,7 +317,10 @@ class AppDelegate(NSObject):
     def applicationDidFinishLaunching_(self, _note):
         self.summarizer = Summarizer()
         self.account_label = current_account().label
-        self.remotes = [RemoteHost(h) for h in ssh_hosts()]
+        # Hosts poll themselves: 10s while the panel is open, 60s otherwise.
+        self.panel_shown = False
+        self._interval_fn = lambda: 10 if self.panel_shown else 60
+        self.remotes = [RemoteHost(h, self._interval_fn) for h in ssh_hosts()]
         cfg = _load_app_config()
         # 요약(Haiku 브리핑) 기능 전체 비활성화 — 재활성화하려면 아래 줄을
         # bool(cfg.get("briefings", True))로 되돌리고 UI 토글을 복원할 것.
@@ -385,7 +388,7 @@ class AppDelegate(NSObject):
             # cached bundle can be minutes old, which reads as "old answer
             # under a new request" until the next poll catches up.
             for r in self.remotes:
-                r.refresh_async(min_interval=0, force=True)
+                r.request_now()
             self.popover.showRelativeToRect_ofView_preferredEdge_(
                 sender.bounds(), sender, NSMaxYEdge
             )
@@ -421,18 +424,20 @@ class AppDelegate(NSObject):
                 self.theme = str(value)
                 _save_app_config_key("theme", self.theme)
         elif cmd == "refresh":
-            # Force: kills any hung in-flight ssh and retries immediately.
             for r in self.remotes:
-                r.refresh_async(min_interval=0, force=True)
+                r.request_now()
             self.tick_(None)
         elif cmd == "add_host":
             host = str(value or "").strip()
             if _config_add_host(host):
-                self.remotes.append(RemoteHost(host))
+                self.remotes.append(RemoteHost(host, self._interval_fn))
                 self.tick_(None)
         elif cmd == "remove_host":
             host = str(value or "")
             _config_remove_host(host)
+            for r in self.remotes:
+                if r.host == host:
+                    r.stop()
             self.remotes = [r for r in self.remotes if r.host != host]
             self.host_order = [h for h in self.host_order if h != host]
             self.host_collapsed = [h for h in self.host_collapsed if h != host]
@@ -447,10 +452,9 @@ class AppDelegate(NSObject):
 
     def tick_(self, _timer):
         shown = self.popover.isShown()
-        # SSH polls are cheap but not free: 10s while the panel is open,
-        # 60s in the background (keeps the icon count roughly current).
-        for r in self.remotes:
-            r.refresh_async(min_interval=10 if shown else 60)
+        # Hosts poll themselves; we only publish the current panel state
+        # so their loops pick the right interval.
+        self.panel_shown = shown
         # Transcript parsing can touch megabytes of JSONL — doing it on the
         # main thread made the panel stutter. Collect in a worker thread,
         # apply the result back on the main thread.
