@@ -335,6 +335,10 @@ function card(s, open, showAccount, briefings) {
 }
 window.update = function (data) {
   if (window._dragging) return;  // don't rebuild mid-drag
+  // Rebuilding 30+ cards every tick is wasteful when nothing changed.
+  const key = JSON.stringify(data);
+  if (window._lastKey === key) return;
+  window._lastKey = key;
   const list = document.getElementById('list');
   const open = new Set(
     Array.from(document.querySelectorAll('.card.open')).map(c => c.dataset.id)

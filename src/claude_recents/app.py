@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -280,6 +281,7 @@ class AppDelegate(NSObject):
         panel_size = _panel_size()
         self.popover = NSPopover.alloc().init()
         self.popover.setBehavior_(NSPopoverBehaviorTransient)
+        self.popover.setAnimates_(False)  # instant open/close; the fade felt laggy
         self.popover.setContentSize_(NSMakeSize(*panel_size))
         controller = NSViewController.alloc().init()
         config = WKWebViewConfiguration.alloc().init()
@@ -362,33 +364,60 @@ class AppDelegate(NSObject):
         # 60s in the background (keeps the icon count roughly current).
         for r in self.remotes:
             r.refresh_async(min_interval=10 if shown else 60)
-        data = collect(
-            self.summarizer,
-            self.account_label,
-            summarize=shown and self.briefings_enabled,
-            remotes=self.remotes,
+        # Transcript parsing can touch megabytes of JSONL — doing it on the
+        # main thread made the panel stutter. Collect in a worker thread,
+        # apply the result back on the main thread.
+        if getattr(self, "_collecting", False):
+            return
+        self._collecting = True
+        threading.Thread(
+            target=self._collect_bg, args=(shown,), daemon=True
+        ).start()
+
+    def _collect_bg(self, shown):
+        try:
+            data = collect(
+                self.summarizer,
+                self.account_label,
+                summarize=shown and self.briefings_enabled,
+                remotes=self.remotes,
+            )
+            data["briefings"] = self.briefings_enabled
+            data["host_collapsed"] = self.host_collapsed
+            data["ssh_hosts"] = [r.host for r in self.remotes]
+            added = set(data["ssh_hosts"])
+            data["ssh_config_hosts"] = [
+                h for h in _ssh_config_hosts() if h not in added
+            ]
+            data["theme"] = self.theme
+            # Apply the user's saved section order; unknown hosts keep default.
+            avail = data["host_order"]
+            data["host_order"] = [h for h in self.host_order if h in avail] + [
+                h for h in avail if h not in self.host_order
+            ]
+            payload = json.dumps(data, ensure_ascii=False)
+        except Exception:
+            self._collecting = False
+            return
+        self.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "applyData:", payload, False
         )
-        data["briefings"] = self.briefings_enabled
-        data["host_collapsed"] = self.host_collapsed
-        data["ssh_hosts"] = [r.host for r in self.remotes]
-        added = set(data["ssh_hosts"])
-        data["ssh_config_hosts"] = [
-            h for h in _ssh_config_hosts() if h not in added
-        ]
-        data["theme"] = self.theme
-        # Apply the user's saved section order; unknown hosts keep default.
-        avail = data["host_order"]
-        data["host_order"] = [h for h in self.host_order if h in avail] + [
-            h for h in avail if h not in self.host_order
-        ]
+
+    def applyData_(self, payload):
+        self._collecting = False
+        try:
+            data = json.loads(payload)
+        except (TypeError, ValueError):
+            return
         total = len(data["sessions"])
         busy = sum(
             1 for s in data["sessions"] if s["status"] in ACTIVE_STATUSES
         )
         self.item.button().setTitle_(f"✳ {busy}/{total}" if total else "✳")
         if self.popover.isShown():
-            js = "window.update(%s)" % json.dumps(data, ensure_ascii=False)
-            self.web.evaluateJavaScript_completionHandler_(js, None)
+            self.web.evaluateJavaScript_completionHandler_(
+                "window.update(%s)" % payload, None
+            )
 
 
 def main() -> None:
