@@ -96,6 +96,14 @@ def parse_transcript(lines):
                 act["request_ts"] = e.get("timestamp", act["request_ts"])
                 act["last_event_ts"] = e.get("timestamp", act["last_event_ts"])
                 segments = 0
+        elif t == "queue-operation":
+            if e.get("operation") == "enqueue":
+                c = str(e.get("content") or "").strip()
+                if c and not c.startswith(("/", "<")):
+                    act["request"] = c[:1200]
+                    act["request_ts"] = e.get("timestamp", act["request_ts"])
+                    act["last_event_ts"] = e.get("timestamp", act["last_event_ts"])
+                    segments = 0
         elif t == "attachment":
             att = e.get("attachment") or {}
             if (att.get("type") == "queued_command"

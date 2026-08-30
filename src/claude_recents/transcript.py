@@ -162,6 +162,18 @@ def parse_activity(lines: list[str]) -> Activity:
                 act.request_ts = event.get("timestamp", act.request_ts)
                 act.last_event_ts = event.get("timestamp", act.last_event_ts)
                 segments = 0
+        elif etype == "queue-operation":
+            # A message typed while Claude is busy is queued instantly but
+            # only surfaces as an `attachment` when actually delivered —
+            # potentially minutes later during a long tool run. Show it as
+            # the current request the moment it is typed.
+            if event.get("operation") == "enqueue":
+                content = str(event.get("content") or "").strip()
+                if content and not content.startswith(("/", "<")):
+                    act.request = content
+                    act.request_ts = event.get("timestamp", act.request_ts)
+                    act.last_event_ts = event.get("timestamp", act.last_event_ts)
+                    segments = 0
         elif etype == "attachment":
             # Mid-turn interjections are recorded as queued_command
             # attachments, not user events — without this they never
