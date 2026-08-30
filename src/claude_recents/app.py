@@ -252,8 +252,16 @@ def collect(
     pairs.sort(key=ref_ms, reverse=True)
     sessions = []
     for s, act in pairs:
-        active = s.status in ACTIVE_STATUSES
         ref = ref_ms((s, act))
+        # A status flag can stick (a claude process left in a forgotten
+        # tmux window keeps "shell" for days). If an "active" session has
+        # produced nothing for an hour, present it as idle — genuinely
+        # working sessions emit transcript events far more often.
+        active = (
+            s.status in ACTIVE_STATUSES
+            and (now_ms - ref) < 60 * 60 * 1000
+        )
+        status_out = s.status if active or s.status not in ACTIVE_STATUSES else "idle" 
         age_days = (now_ms - ref) / 86400000 if ref else 999
         group = "recent" if age_days <= 3 else ("week" if age_days <= 7 else "old")
         if act.request or act.doing:
@@ -285,7 +293,7 @@ def collect(
                 "project": s.project_label,
                 "account": s.account,
                 "host": s.host,
-                "status": s.status,
+                "status": status_out,
                 "group": group,
                 "elapsed": elapsed,
                 "summary": summary,
@@ -500,11 +508,11 @@ class AppDelegate(NSObject):
             data = json.loads(payload)
         except (TypeError, ValueError):
             return
-        total = len(data["sessions"])
         busy = sum(
             1 for s in data["sessions"] if s["status"] in ACTIVE_STATUSES
         )
-        self.item.button().setTitle_(f"✳ {busy}/{total}" if total else "✳")
+        # Active count only — totals grow unbounded and belong in the panel.
+        self.item.button().setTitle_(f"✳ {busy}" if busy else "✳")
         if self.popover.isShown():
             self.web.evaluateJavaScript_completionHandler_(
                 "window.update(%s)" % payload, None
