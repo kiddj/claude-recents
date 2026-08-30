@@ -55,6 +55,10 @@ body.dark .card.st-waiting { border-color: rgba(255,159,10,.4); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #a1a1a6; flex: none; }
 .dot.busy { background: #34c759; animation: pulse 1.6s ease-in-out infinite; }
 .dot.waiting { background: #ff9f0a; animation: pulse 1.6s ease-in-out infinite; }
+.dot.stalled {
+  background: transparent; width: 7px; height: 7px;
+  border: 2px solid #e08a0a;
+}
 @keyframes pulse { 50% { opacity: .35; } }
 .proj {
   font-weight: 700; font-size: 13.5px;
@@ -62,6 +66,11 @@ body.dark .card.st-waiting { border-color: rgba(255,159,10,.4); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .projtag { flex: none; font-size: 11px; color: var(--tx2); font-weight: 500; }
+.stalledbadge {
+  flex: none; font-size: 10px; font-weight: 700;
+  padding: 1.5px 7px; border-radius: 9px;
+  background: rgba(224,138,10,.15); color: #e08a0a;
+}
 .card.open .proj { white-space: normal; }
 .acctbadge {
   flex: none; font-size: 10px; font-weight: 600; opacity: .65;
@@ -313,7 +322,10 @@ function bubble(cls, text) {
 }
 function card(s, open, showAccount, briefings) {
   const active = ['busy', 'shell', 'waiting'].indexOf(s.status) !== -1;
-  const dotCls = s.status === 'waiting' ? ' waiting' : (active ? ' busy' : '');
+  const dotCls = s.status === 'waiting' ? ' waiting'
+    : (s.status === 'stalled' ? ' stalled' : (active ? ' busy' : ''));
+  const stalledBadge = s.status === 'stalled'
+    ? '<span class="stalledbadge">stalled</span>' : '';
   let summaryLine = '';
   if (briefings) {
     if (s.summary) {
@@ -350,7 +362,7 @@ function card(s, open, showAccount, briefings) {
     ' onclick="this.classList.toggle(\'open\')">' +
     '<div class="top"><span class="dot' + dotCls + '"></span>' +
     '<span class="proj">' + esc(s.title || s.project) + '</span>' +
-    '<span class="projtag">' + esc(s.project) + '</span>' + acctBadge +
+    '<span class="projtag">' + esc(s.project) + '</span>' + stalledBadge + acctBadge +
     '<span class="elapsed">' + esc(s.elapsed) + '</span></div>' +
     summaryLine + chat + nowLine +
     '<div class="cwd">' + esc(s.cwd) + '</div></div>';

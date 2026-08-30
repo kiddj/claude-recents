@@ -266,7 +266,13 @@ def collect(
             s.status in ACTIVE_STATUSES
             and (now_ms - last_activity) < 3 * 60 * 60 * 1000
         )
-        status_out = s.status if active or s.status not in ACTIVE_STATUSES else "idle" 
+        # Zombie flags get their own visible state instead of silently
+        # becoming idle — the user asked to see them called out.
+        status_out = (
+            s.status
+            if active or s.status not in ACTIVE_STATUSES
+            else "stalled"
+        )
         age_days = (now_ms - ref) / 86400000 if ref else 999
         group = "recent" if age_days <= 3 else ("week" if age_days <= 7 else "old")
         if act.request or act.doing:
