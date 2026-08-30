@@ -65,6 +65,25 @@ ssh-copy-id my-server
 
 The server needs `python3` on its PATH (any modern Linux does) and, of course, Claude Code sessions running on it. If authentication fails, the panel shows exactly that with the fix inline.
 
+## Session states
+
+| Marker | State | Meaning |
+|---|---|---|
+| 🟢 solid green, pulsing | **working** | Claude is thinking, running tools, or writing a reply right now |
+| 🟠 solid orange, pulsing | **waiting** | Claude is waiting for *your* decision (e.g. a permission prompt) |
+| 🟠 hollow orange ring, static + `stalled` badge | **stalled** | the status flag says "working", but nothing has happened for hours — see below |
+| ⚪ gray | **idle** | the reply is finished; Claude is waiting for your next message |
+
+The menu bar count (`✳ 3`) counts **working + waiting** sessions only.
+
+### About "stalled" (a heuristic, explained honestly)
+
+Status flags come from Claude Code itself, and they can get stuck: if a session loses its connection mid-turn (dropped SSH, a killed remote-control link during a shell call), the claude process stays perfectly healthy — event loop running, shell child alive — but it waits forever for an event that will never arrive, and never writes the "back to idle" transition. From the outside, every process-level signal (state, CPU, TTY, child processes) looks identical to a genuinely working session; we tested them all. The **only** observable difference is that a stuck session stops producing transcript output.
+
+So claude-recents marks a session as `stalled` when its flag claims active but there has been **no observable activity for 3+ hours**. In measured practice the two populations are far apart — really-working sessions emit events every few seconds-to-minutes (even day-long autonomous loops), while stuck ones sit silent for days — so misclassification is unlikely. A quiet foreground command running longer than 3 hours would be the one false-positive case.
+
+Stalled sessions consume **no tokens** (no API calls — their transcripts prove it) but do hold server memory. Killing the process is safe: the conversation stays on disk and `claude --resume` picks it up again.
+
 ## How it works
 
 Claude Code keeps per-session state on disk. claude-recents reads it — nothing more:
