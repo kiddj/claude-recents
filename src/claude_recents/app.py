@@ -306,6 +306,9 @@ class AppDelegate(NSObject):
         if self.popover.isShown():
             self.popover.performClose_(None)
         else:
+            # Recompute on every open: the user may have moved to a
+            # different display since launch.
+            self.popover.setContentSize_(NSMakeSize(*_panel_size()))
             self.popover.showRelativeToRect_ofView_preferredEdge_(
                 sender.bounds(), sender, NSMaxYEdge
             )
