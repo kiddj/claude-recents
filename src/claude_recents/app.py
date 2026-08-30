@@ -345,6 +345,11 @@ class AppDelegate(NSObject):
             if value in ("auto", "light", "dark"):
                 self.theme = str(value)
                 _save_app_config_key("theme", self.theme)
+        elif cmd == "refresh":
+            # Force an immediate remote fetch, skipping the poll interval.
+            for r in self.remotes:
+                r.refresh_async(min_interval=0)
+            self.tick_(None)
         elif cmd == "add_host":
             host = str(value or "").strip()
             if _config_add_host(host):

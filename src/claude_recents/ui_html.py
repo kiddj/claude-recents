@@ -116,8 +116,18 @@ body.dark .bubble.asst { background: #3a3a41; color: #f2f2f6; }
 }
 .toggle input { accent-color: #0a84ff; margin: 0; }
 body.nosum .summary { display: none; }
-.seg {
+.hbtn {
   margin-left: auto; align-self: center; flex: none;
+  width: 25px; height: 25px; border: none; border-radius: 7px;
+  background: transparent; color: var(--tx2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.hbtn:active { background: rgba(0,0,0,.07); }
+body.dark .hbtn:active { background: rgba(255,255,255,.1); }
+@keyframes hspin { to { transform: rotate(360deg); } }
+.hbtn.spinning svg { animation: hspin .7s linear; }
+.seg {
+  align-self: center; flex: none;
   display: flex; gap: 2px; padding: 2px; border-radius: 8px;
   background: rgba(0,0,0,.06);
 }
@@ -241,6 +251,7 @@ footer { padding: 6px 14px 12px; font-size: 10.5px; opacity: .4; text-align: cen
 <label class="toggle"><input type="checkbox" id="sumtoggle"
   onchange="document.body.classList.toggle('nosum', !this.checked);try{window.webkit.messageHandlers.app.postMessage({cmd:'briefings',value:this.checked})}catch(e){}">Summary</label>
 -->
+<button class="hbtn" id="refreshbtn" onclick="forceRefresh()" aria-label="Refresh now"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
 <div class="seg" role="group" aria-label="Theme">
 <button class="seg-btn" id="seg-light" onclick="setTheme('light')" aria-label="Light mode"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2v2.4M12 19.6V22M4.8 4.8l1.7 1.7M17.5 17.5l1.7 1.7M2 12h2.4M19.6 12H22M4.8 19.2l1.7-1.7M17.5 6.5l1.7-1.7"/></svg></button>
 <button class="seg-btn" id="seg-dark" onclick="setTheme('dark')" aria-label="Dark mode"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
@@ -276,6 +287,15 @@ function applyTheme(theme) {
     d.classList.toggle('active', dark);
   }
 }
+window.forceRefresh = function () {
+  const b = document.getElementById('refreshbtn');
+  b.classList.add('spinning');
+  setTimeout(function () { b.classList.remove('spinning'); }, 700);
+  window._lastKey = null;  // force the next update to rebuild
+  try {
+    window.webkit.messageHandlers.app.postMessage({ cmd: 'refresh' });
+  } catch (err) {}
+};
 window.setTheme = function (mode) {
   window._theme = mode;
   applyTheme(mode);
