@@ -1,5 +1,8 @@
 # claude-recents
 
+> **Quick — you have seven Claude sessions running. What is each one doing right now?**
+> …Exactly. Stop keeping that in your head. That's what this app is for.
+
 **A macOS menu bar app that shows what every one of your Claude Code sessions is doing — right now, across all your machines.**
 
 If you run more than a couple of Claude Code sessions at once (a few locally, a few on remote GPU boxes over SSH), you know the feeling: *which session was doing what again?* claude-recents puts a ✳ icon in your menu bar with a live count of working sessions, and one click opens a panel where every session shows its latest request, the latest reply, and what it is doing at this exact moment.
