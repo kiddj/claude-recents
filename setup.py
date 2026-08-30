@@ -21,8 +21,8 @@ setup(
                 "CFBundleName": "Claude Recents",
                 "CFBundleDisplayName": "Claude Recents",
                 "CFBundleIdentifier": "com.kiddj.claude-recents",
-                "CFBundleShortVersionString": "0.1.2",
-                "CFBundleVersion": "0.1.2",
+                "CFBundleShortVersionString": "0.1.3",
+                "CFBundleVersion": "0.1.3",
                 "LSUIElement": True,  # 메뉴바 전용: Dock 아이콘 없음
                 # GUI 앱은 로케일 env 없이 떠서 기본 인코딩이 ASCII가 됨 —
                 # 한글 트랜스크립트를 읽는 순간 죽는다. UTF-8 강제.

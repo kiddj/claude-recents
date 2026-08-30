@@ -51,6 +51,7 @@ Right-click the ✳ menu bar icon → **Start at Login**. That's it — the app 
 - **Drag a server header** → reorder machines (a blue insertion line shows where it will land).
 - **Add Server** (bottom of the panel) → pick a host from your `~/.ssh/config` and press Add.
 - **Unlink icon** on a server header → "Disconnect / Cancel" to remove that server.
+- **↻ Refresh** (header) → re-poll every server immediately, even mid-connection.
 - **☀ / ☾** → light/dark theme (defaults to following the system).
 - **Right-click** the menu bar icon → quit.
 
@@ -75,7 +76,7 @@ Claude Code keeps per-session state on disk. claude-recents reads it — nothing
 | Account badges | `~/.claude.json` |
 | Remote sessions | the same files on the server, fetched via `ssh <host> python3 -` (a self-contained script; parsing happens server-side, only compact results travel back) |
 
-Refresh is every 2 seconds locally; remote hosts are polled every 10s while the panel is open and every 60s in the background.
+Refresh is every 2 seconds locally; remote hosts are polled every 10s while the panel is open and every 60s in the background. If a server becomes unreachable, the panel keeps the last received data, shows the connection error inline, and marks the section with how old the data is (e.g. `· 5m old`) — it catches up automatically (or instantly via the refresh button) once the network is back.
 
 > **Note:** the per-session state files are an *undocumented* Claude Code internal (verified against v2.1.x). A future Claude Code update could change them; the parser is written defensively, but if things break, please open an issue with your Claude Code version.
 
