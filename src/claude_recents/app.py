@@ -377,6 +377,11 @@ class AppDelegate(NSObject):
             # Recompute on every open: the user may have moved to a
             # different display since launch.
             self.popover.setContentSize_(NSMakeSize(*_panel_size()))
+            # Fetch remotes immediately on open — after a VPN drop the
+            # cached bundle can be minutes old, which reads as "old answer
+            # under a new request" until the next poll catches up.
+            for r in self.remotes:
+                r.refresh_async(min_interval=0)
             self.popover.showRelativeToRect_ofView_preferredEdge_(
                 sender.bounds(), sender, NSMaxYEdge
             )
