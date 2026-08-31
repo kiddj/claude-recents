@@ -392,7 +392,7 @@ function card(s, open, showAccount, briefings) {
   const stCls = s.status === 'waiting' ? ' st-waiting' : (active ? ' st-busy' : ' st-idle');
   return '<div class="card' + stCls + (open ? ' open' : '') + '" data-id="' + esc(s.id) + '"' +
     ' onclick="this.classList.toggle(\'open\')">' +
-    '<div class="top"><span class="dot' + dotCls + '"></span>' +
+    '<div class="top"><span class="dot' + dotCls + '" style="animation-delay:' + pulsePhase(1.6) + '"></span>' +
     '<span class="proj">' + esc(s.title || s.project) + '</span>' +
     '<span class="projtag">' + esc(s.project) + '</span>' + stalledBadge + acctBadge +
     '<span class="elapsed">' + esc(s.elapsed) + '</span></div>' +
@@ -477,7 +477,7 @@ function _updateImpl(data) {
       ' ondragstart="hostDragStart(event,this)"' +
       ' ondragend="hostDragEnd(this)">' +
       '<span class="grip">⠿</span>' +
-      '<span class="hostdot ' + hostDotOf(h, data) + '"></span>' +
+      '<span class="hostdot ' + hostDotOf(h, data) + '" style="animation-delay:' + pulsePhase(1.2) + '"></span>' +
       (h ? '🖥 ' + esc(h) : '💻 This Mac') +
       '<span class="hostcount">' + busyN + ' active · ' + arr.length + ' total' +
       staleTag(st) + '</span>' + (h ? rmControls(h, armedHere) : '') +
@@ -508,6 +508,11 @@ function _updateImpl(data) {
   list.innerHTML = html;
   renderHostOptions(data.ssh_config_hosts || []);
   renderUpdateBar(data.update || {});
+}
+function pulsePhase(period) {
+  // Rebuilding the DOM restarts CSS animations at 0%; anchoring the phase
+  // to the wall clock makes the pulse continue seamlessly across rebuilds.
+  return '-' + ((Date.now() / 1000) % period).toFixed(3) + 's';
 }
 function renderUpdateBar(u) {
   const el = document.getElementById('updbar');
