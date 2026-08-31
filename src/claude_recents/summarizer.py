@@ -85,6 +85,8 @@ def _via_claude_cli(prompt: str) -> str:
         input=prompt,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=_TIMEOUT,
         cwd=os.path.expanduser("~"),
         env=env,

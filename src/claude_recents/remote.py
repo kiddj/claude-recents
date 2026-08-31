@@ -47,6 +47,13 @@ _SKIP_PREFIXES = (
 )
 
 
+def jload(path):
+    # Server locale can be ASCII (sshd may not AcceptEnv LANG) — never
+    # let default-encoding text reads touch Korean session names.
+    with open(path, "rb") as fh:
+        return json.loads(fh.read().decode("utf-8", "replace"))
+
+
 def tail(path, n):
     try:
         size = os.path.getsize(path)
@@ -164,7 +171,7 @@ for d in cfg_dirs:
     else:
         ident = os.path.join(d, ".claude.json")
     try:
-        acct = json.load(open(ident)).get("oauthAccount") or {}
+        acct = jload(ident).get("oauthAccount") or {}
     except Exception:
         acct = {}
     entry = {
@@ -178,7 +185,7 @@ for d in cfg_dirs:
     history = None
     for f in glob.glob(os.path.join(d, "sessions", "*.json")):
         try:
-            s = json.load(open(f))
+            s = jload(f)
         except Exception:
             continue
         pid = s.get("pid")
@@ -315,6 +322,8 @@ class RemoteHost:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             with self._lock:
                 self._proc = proc
