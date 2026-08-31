@@ -44,7 +44,7 @@ uv tool upgrade claude-recents      # or: pipx upgrade claude-recents
 # plain pip: pip install -U claude-recents
 ```
 
-The menu bar app keeps running the old version until restarted — right-click the ✳ icon → **Quit**, then run `claude-recents` again (or just log out/in if you use Start at Login).
+The app also checks PyPI once a day (and via right-click → **Check for Updates**) and shows an **Update & Restart** banner in the panel when a new version is out — one click upgrades and relaunches. Set `"update_check": false` in the config file to disable the daily check.
 
 ### Start at login (optional)
 
@@ -127,7 +127,7 @@ Everything you change in the UI (servers, section order, collapsed state, theme)
 ## Privacy
 
 - All data is read from your local disk or over SSH connections **you** configured.
-- The app makes no network requests of its own — no telemetry, no accounts, no cloud.
+- The app's only outbound request is an optional once-daily version check against PyPI (`"update_check": false` disables it) — no telemetry, no accounts, no cloud.
 - Requests/replies are displayed, never stored anywhere new.
 
 ## Limitations

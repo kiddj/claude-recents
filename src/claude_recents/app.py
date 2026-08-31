@@ -193,6 +193,67 @@ def _config_remove_host(host: str) -> None:
     _save_app_config(cfg)
 
 
+def _installed_version() -> str | None:
+    """Version of the claude-recents package on disk right now.
+    None when not running from a pip/uv install (e.g. the .app bundle)."""
+    try:
+        import importlib
+        import importlib.metadata
+
+        importlib.invalidate_caches()
+        return importlib.metadata.version("claude-recents")
+    except Exception:
+        return None
+
+
+def _current_version() -> str:
+    """Running version — package metadata first, bundle Info.plist fallback."""
+    v = _installed_version()
+    if v:
+        return v
+    try:
+        from AppKit import NSBundle
+
+        info = NSBundle.mainBundle().infoDictionary() or {}
+        return str(info.get("CFBundleShortVersionString") or "")
+    except Exception:
+        return ""
+
+
+def _parse_ver(v: str) -> tuple:
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except ValueError:
+        return ()
+
+
+def _fetch_latest_version() -> str:
+    """Latest release on PyPI ('' on any failure). A plain GET; nothing
+    about the user or their sessions is sent."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(
+            "https://pypi.org/pypi/claude-recents/json", timeout=6
+        ) as resp:
+            return str(json.loads(resp.read()).get("info", {}).get("version", ""))
+    except Exception:
+        return ""
+
+
+def _upgrade_command() -> list[str] | None:
+    """How to upgrade THIS install; None for the .app bundle (no package
+    metadata) — callers then open the releases page instead."""
+    if _installed_version() is None:
+        return None
+    exe = sys.argv[0]
+    if "/uv/tools/" in exe or "/.local/share/uv/" in exe:
+        return ["uv", "tool", "upgrade", "claude-recents"]
+    if "pipx" in exe:
+        return ["pipx", "upgrade", "claude-recents"]
+    return [sys.executable, "-m", "pip", "install", "-U", "claude-recents"]
+
+
 def _iso_ms(ts: str) -> float:
     """ISO-8601 timestamp (transcript format) → epoch ms, 0 on failure."""
     if not ts:
@@ -340,6 +401,11 @@ class AppDelegate(NSObject):
         self.panel_shown = False
         self._interval_fn = lambda: 10 if self.panel_shown else 60
         self.remotes = [RemoteHost(h, self._interval_fn) for h in ssh_hosts()]
+        self._tick_count = 0
+        self._version = _current_version()
+        self._latest_version = ""
+        self._update_state = ""   # "" | "checking" | "updating" | "error: ..."
+        self._last_update_check = 0.0
         cfg = _load_app_config()
         # 요약(Haiku 브리핑) 기능 전체 비활성화 — 재활성화하려면 아래 줄을
         # bool(cfg.get("briefings", True))로 되돌리고 UI 토글을 복원할 것.
@@ -358,6 +424,11 @@ class AppDelegate(NSObject):
         button.sendActionOn_(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)
 
         self.quit_menu = NSMenu.alloc().init()
+        self.update_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Check for Updates", "checkUpdates:", ""
+        )
+        self.update_item.setTarget_(self)
+        self.quit_menu.addItem_(self.update_item)
         self.autostart_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "Start at Login", "toggleAutostart:", ""
         )
@@ -395,6 +466,7 @@ class AppDelegate(NSObject):
         event = NSApplication.sharedApplication().currentEvent()
         if event is not None and event.type() == NSEventTypeRightMouseUp:
             self.autostart_item.setState_(1 if autostart_enabled() else 0)
+            self._refresh_update_item()
             self.item.popUpStatusItemMenu_(self.quit_menu)
             return
         if self.popover.isShown():
@@ -446,6 +518,8 @@ class AppDelegate(NSObject):
             for r in self.remotes:
                 r.request_now()
             self.tick_(None)
+        elif cmd == "self_update":
+            self._start_self_update()
         elif cmd == "open_ssh_config":
             cfg_path = Path.home() / ".ssh" / "config"
             try:
@@ -477,7 +551,100 @@ class AppDelegate(NSObject):
             enable_autostart()
         self.autostart_item.setState_(1 if autostart_enabled() else 0)
 
+    def _update_available(self) -> bool:
+        return bool(
+            self._latest_version
+            and _parse_ver(self._latest_version) > _parse_ver(self._version)
+        )
+
+    def _refresh_update_item(self):
+        if self._update_state == "checking":
+            title = "Checking for Updates…"
+        elif self._update_state == "updating":
+            title = "Updating…"
+        elif self._update_available():
+            title = f"Update to {self._latest_version} and Restart"
+        elif self._latest_version:
+            title = f"Up to Date ({self._version})"
+        else:
+            title = "Check for Updates"
+        self.update_item.setTitle_(title)
+
+    def checkUpdates_(self, _sender):
+        if self._update_available():
+            self._start_self_update()
+            return
+        if self._update_state:
+            return
+        self._update_state = "checking"
+        self._refresh_update_item()
+        threading.Thread(target=self._check_bg, daemon=True).start()
+
+    def _check_bg(self):
+        latest = _fetch_latest_version()
+        self._last_update_check = time.time()
+        self._latest_version = latest
+        self._update_state = ""
+        self.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "applyUpdateState:", "", False
+        )
+
+    def applyUpdateState_(self, _arg):
+        self._refresh_update_item()
+        self.tick_(None)
+
+    def _start_self_update(self):
+        if self._update_state == "updating":
+            return
+        cmd = _upgrade_command()
+        if cmd is None:
+            # Bundle install cannot self-upgrade — open the releases page.
+            subprocess.Popen(
+                ["open", "https://github.com/kiddj/claude-recents/releases"]
+            )
+            return
+        self._update_state = "updating"
+        self._refresh_update_item()
+        threading.Thread(target=self._update_bg, args=(cmd,), daemon=True).start()
+
+    def _update_bg(self, cmd):
+        try:
+            r = subprocess.run(
+                cmd, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=300,
+            )
+            ok = r.returncode == 0
+            err = (r.stderr.strip().splitlines() or ["upgrade failed"])[-1][:120]
+        except Exception as e:
+            ok, err = False, str(e)[:120]
+        if ok:
+            self._relaunch()  # exec into the new version (user asked for it)
+        self._update_state = f"error: {err}"
+        self.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "applyUpdateState:", "", False
+        )
+
+    def _relaunch(self):
+        exe = sys.argv[0]
+        if not os.path.isabs(exe):
+            exe = shutil.which("claude-recents") or exe
+        try:
+            os.execv(exe, [exe])
+        except OSError:
+            pass
+
     def tick_(self, _timer):
+        self._tick_count += 1
+        # Daily update check (first ~2 min after launch). Opt out with
+        # "update_check": false in the config file.
+        if (
+            self._update_state == ""
+            and time.time() - self._last_update_check > 86400
+            and self._tick_count > 60
+            and _load_app_config().get("update_check", True)
+        ):
+            self._update_state = "checking"
+            threading.Thread(target=self._check_bg, daemon=True).start()
         shown = self.popover.isShown()
         # Hosts poll themselves; we only publish the current panel state
         # so their loops pick the right interval.
@@ -508,6 +675,11 @@ class AppDelegate(NSObject):
                 h for h in _ssh_config_hosts() if h not in added
             ]
             data["theme"] = self.theme
+            data["update"] = {
+                "latest": self._latest_version,
+                "available": self._update_available(),
+                "state": self._update_state,
+            }
             # Apply the user's saved section order; unknown hosts keep default.
             avail = data["host_order"]
             data["host_order"] = [h for h in self.host_order if h in avail] + [

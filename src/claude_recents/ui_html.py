@@ -87,6 +87,24 @@ body.dark .top { border-bottom-color: rgba(255,255,255,.07); }
   padding: 1.5px 7px; border-radius: 9px;
   background: rgba(90,200,250,.16); color: #0a84c1;
 }
+.updbar {
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px 10px 0; padding: 7px 11px; border-radius: 9px;
+  font-size: 11.5px; font-weight: 600;
+  background: rgba(232,121,12,.1); color: var(--tx);
+  border: 1px solid #e8790c;
+}
+body.dark .updbar {
+  background: rgba(255,159,10,.14);
+  border-color: rgba(255,159,10,.55);
+}
+.updbar button {
+  margin-left: auto; border: none; border-radius: 6px; flex: none;
+  padding: 3px 10px; font-size: 11px; font-weight: 600;
+  background: #e8790c; color: #fff; cursor: pointer; font-family: inherit;
+}
+body.dark .updbar button { background: #ff9f0a; color: #291800; }
+.updbar .upderr { margin-left: auto; color: #e0443e; font-size: 10.5px; }
 .hosterr {
   margin: 0 2px 8px; padding: 6px 10px; border-radius: 8px;
   font-size: 11px; line-height: 1.4;
@@ -277,6 +295,7 @@ footer { padding: 4px 12px 8px; font-size: 10px; opacity: .4; text-align: center
 <button class="seg-btn" id="seg-dark" onclick="setTheme('dark')" aria-label="Dark mode"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
 </div>
 </header>
+<div id="updbar"></div>
 <div id="list"><div class="empty">Loading…</div></div>
 <div class="addzone">
   <span class="zlabel">Add Server</span>
@@ -488,7 +507,30 @@ function _updateImpl(data) {
   });
   list.innerHTML = html;
   renderHostOptions(data.ssh_config_hosts || []);
+  renderUpdateBar(data.update || {});
 }
+function renderUpdateBar(u) {
+  const el = document.getElementById('updbar');
+  const key = JSON.stringify(u);
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  if (u.state === 'updating') {
+    el.innerHTML = '<div class="updbar">Updating to ' + esc(u.latest) + '…</div>';
+  } else if (u.state && u.state.indexOf('error') === 0) {
+    el.innerHTML = '<div class="updbar">Update failed' +
+      '<span class="upderr">' + esc(u.state) + '</span></div>';
+  } else if (u.available) {
+    el.innerHTML = '<div class="updbar">v' + esc(u.latest) + ' is available' +
+      '<button onclick="selfUpdate()">Update &amp; Restart</button></div>';
+  } else {
+    el.innerHTML = '';
+  }
+}
+window.selfUpdate = function () {
+  try {
+    window.webkit.messageHandlers.app.postMessage({ cmd: 'self_update' });
+  } catch (err) {}
+};
 window.hostToggle = function (el) {
   // A click that lands right after a drag is drag residue, not a toggle.
   if (Date.now() - (window._lastDragEnd || 0) < 400) return;

@@ -44,7 +44,7 @@ uv tool upgrade claude-recents      # 또는: pipx upgrade claude-recents
 # pip 사용 시: pip install -U claude-recents
 ```
 
-메뉴바 앱은 재시작 전까지 이전 버전으로 계속 돕니다 — ✳ 아이콘 **우클릭 → Quit** 후 `claude-recents`를 다시 실행하세요 (Start at Login을 쓰면 재로그인으로도 됩니다).
+앱이 하루 한 번(그리고 우클릭 → **Check for Updates**로 수동) PyPI를 확인해서, 새 버전이 있으면 패널 상단에 **Update & Restart** 배너를 띄웁니다 — 클릭 한 번으로 업그레이드 후 재시작됩니다. 일일 확인은 설정의 `"update_check": false`로 끌 수 있습니다.
 
 ### 로그인 시 자동 시작 (선택)
 
@@ -127,7 +127,7 @@ UI에서 바꾸는 모든 것(서버, 구역 순서, 접힘 상태, 테마)은 `
 ## 프라이버시
 
 - 모든 데이터는 로컬 디스크 또는 **직접** 설정한 SSH 연결에서만 읽습니다.
-- 앱 자체의 네트워크 요청은 없습니다 — 텔레메트리 없음, 계정 없음, 클라우드 없음.
+- 앱의 유일한 외부 요청은 하루 1회의 PyPI 버전 확인뿐이며(`"update_check": false`로 비활성화 가능) — 텔레메트리 없음, 계정 없음, 클라우드 없음.
 - 요청/답변은 표시만 할 뿐 어디에도 새로 저장하지 않습니다.
 
 ## 제약

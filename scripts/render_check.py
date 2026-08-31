@@ -44,6 +44,7 @@ DATA = {
     "host_status": {"gpu-server": {"state": "ok", "error": ""}},
     "host_collapsed": [], "briefings": False, "ssh_hosts": ["gpu-server"],
     "ssh_config_hosts": ["staging-box"], "theme": "dark",
+    "update": {"latest": "0.2.0", "available": True, "state": ""},
 }
 
 OUT = sys.argv[1]
