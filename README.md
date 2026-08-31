@@ -37,6 +37,15 @@ uv tool install claude-recents      # recommended
 claude-recents                       # ✳ appears in your menu bar
 ```
 
+### Updating
+
+```sh
+uv tool upgrade claude-recents      # or: pipx upgrade claude-recents
+# plain pip: pip install -U claude-recents
+```
+
+The menu bar app keeps running the old version until restarted — right-click the ✳ icon → **Quit**, then run `claude-recents` again (or just log out/in if you use Start at Login).
+
 ### Start at login (optional)
 
 Right-click the ✳ menu bar icon → **Start at Login**. That's it — the app writes its own LaunchAgent (`~/Library/LaunchAgents/com.kiddj.claude-recents.plist`) and starts automatically from your next login. Toggle it again to turn it off.

@@ -37,6 +37,15 @@ uv tool install claude-recents      # 권장
 claude-recents                       # 메뉴바에 ✳ 등장
 ```
 
+### 업데이트
+
+```sh
+uv tool upgrade claude-recents      # 또는: pipx upgrade claude-recents
+# pip 사용 시: pip install -U claude-recents
+```
+
+메뉴바 앱은 재시작 전까지 이전 버전으로 계속 돕니다 — ✳ 아이콘 **우클릭 → Quit** 후 `claude-recents`를 다시 실행하세요 (Start at Login을 쓰면 재로그인으로도 됩니다).
+
 ### 로그인 시 자동 시작 (선택)
 
 메뉴바 ✳ 아이콘 **우클릭 → Start at Login**. 끝입니다 — 앱이 LaunchAgent(`~/Library/LaunchAgents/com.kiddj.claude-recents.plist`)를 직접 등록하고 다음 로그인부터 자동 시작됩니다. 다시 누르면 해제됩니다.
