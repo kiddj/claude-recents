@@ -208,9 +208,9 @@ for d in cfg_dirs:
             except OSError:
                 big = False
             if big:
-                act2 = parse_transcript(tail(tp, 8388608))
-                if act2["request"]:
-                    act = act2
+                # Wide window supersets the narrow one — adopt it even if
+                # the request is still missing, so a found answer is kept.
+                act = parse_transcript(tail(tp, 8388608))
         if not act["request"]:
             if history is None:
                 history = tail(os.path.join(d, "history.jsonl"), 262144)

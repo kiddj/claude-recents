@@ -99,11 +99,13 @@ def activity(session: Session) -> Activity:
         except OSError:
             big = False
         if big:
-            wide = parse_activity(
+            # The wide window is a superset of the narrow one, so its
+            # result is strictly better-informed — adopt it even when the
+            # request still wasn't found (it may carry the answer that the
+            # narrow window missed under megabytes of tool output).
+            act = parse_activity(
                 _tail_lines(session.transcript_path, 8 * 1024 * 1024)
             )
-            if wide.request:
-                act = wide
     if not act.request:
         act.request = latest_request(session)
     return act
