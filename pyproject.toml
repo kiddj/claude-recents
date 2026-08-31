@@ -1,6 +1,6 @@
 [project]
 name = "claude-recents"
-version = "0.1.9"
+version = "0.1.10"
 description = "macOS menu bar app showing what every Claude Code session is working on — local and over SSH — in real time"
 readme = "README.md"
 license = { file = "LICENSE" }
